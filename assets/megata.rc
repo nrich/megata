@@ -1,0 +1,50 @@
+#if HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include <windows.h>
+
+#pragma code_page(65001)
+
+#ifdef _DEBUG
+    #define VER_FILEFLAGS   VS_FF_DEBUG
+#else
+    #define VER_FILEFLAGS   0x0L
+#endif
+
+#define VERSION_STR "3.7.0"
+
+#ifdef _WIN64
+    #define VER_FILEDESCRIPTION_STR     "Megata - Emulator for the Bit Corp Gamate handheld console."
+    #define VER_ORIGINALFILENAME_STR    "megata.exe"
+#endif
+
+#define PRODUCT_NAME "Megata - Emulator"
+#define INTERNAL_NAME "megata"
+
+1 VERSIONINFO
+FILEVERSION     3,7,0,0
+PRODUCTVERSION  3,7,0,0
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "080904E4"
+    BEGIN
+      VALUE "CompanyName", ""
+      VALUE "FileDescription", VER_FILEDESCRIPTION_STR
+      VALUE "FileVersion", VERSION_STR
+      VALUE "InternalName", INTERNAL_NAME
+      VALUE "LegalCopyright", "Copyright © 2025 Neil Richardson"
+      VALUE "OriginalFilename", VER_FILEDESCRIPTION_STR
+      VALUE "ProductName", PRODUCT_NAME
+      VALUE "ProductVersion", VERSION_STR
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x809, 1252
+  END
+END
+
+100 ICON "megata.ico"
+
