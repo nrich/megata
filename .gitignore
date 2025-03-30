@@ -1,0 +1,7 @@
+.nix
+.win32
+.win64
+.emcc
+.swp
+megata
+megata.exe

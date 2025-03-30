@@ -1,0 +1,114 @@
+MKDIR = mkdir -p
+CXX = g++
+CC = gcc
+RM = rm -f
+RMDIR = rm -rf
+INC = -I src -I thirdparty -I /opt/local/raylib-cpp-5.5.0/include/
+LDFLAGS = -lraylib
+CPPFLAGS = -g -O3 -std=c++20 $(INC) -Wall -pthread
+CFLAGS = -g -O3 $(INC) -Wall -pthread
+STRIP = strip
+ 
+ifdef CONFIG_W64
+    CXX = x86_64-w64-mingw32-g++
+    CC = x86_64-w64-mingw32-gcc
+    ifdef CONFIG_MIN
+        LDFLAGS = -mwindows -static-libgcc -static-libstdc++ -L /opt/local/glfw-3.3.4.bin.WIN64/lib-mingw-w64/ -lglfw3 -L /opt/local/raylib-5.5_win64_mingw-w64/lib -lraylib -lgdi32 -lopengl32 -lwinmm
+        INC = -I src -I thirdparty -I /opt/local/raylib-cpp-5.5.0/include/ -I /opt/local/raylib-5.5_win64_mingw-w64/include
+        CPPFLAGS = -O3 -std=c++20 -pthread $(INC) -D_WIN64 -Wall
+    else
+        LDFLAGS = -mconsole -static-libgcc -static-libstdc++ -L /opt/local/glfw-3.3.4.bin.WIN64/lib-mingw-w64/ -lglfw3 -L /opt/local/raylib-5.5_win64_mingw-w64/lib -lraylib -lgdi32 -lopengl32 -lwinmm
+        INC = -I src -I thirdparty -I /opt/local/raylib-cpp-5.5.0/include/ -I /opt/local/raylib-5.5_win64_mingw-w64/include
+        CPPFLAGS = -O3 -std=c++20 -pthread $(INC) -D_WIN64 -Wall
+    endif
+    WINDRES = x86_64-w64-mingw32-windres
+    STRIP = x86_64-w64-mingw32-strip
+    WINDRESARGS = 
+endif
+
+VERSION = $(shell cat VERSION.txt)
+CPPFLAGS := $(CPPFLAGS) -DVERSION="\"$(VERSION)\""
+ifdef CONFIG_MIN
+CPPFLAGS := $(CPPFLAGS) -DMINBUILD="1"
+endif
+LDFLAGS := $(LDFLAGS)
+
+# Temporary build directories
+ifdef CONFIG_W64
+    BUILD := .win64
+else
+    BUILD := .nix
+endif
+ 
+# Define V=1 to show command line.
+ifdef V
+    Q :=
+    E := @true
+else
+    Q := @
+    E := @echo
+endif
+ 
+ifdef CONFIG_W64
+    TARG := megata.exe
+else
+    TARG := megata
+endif
+ 
+all: $(TARG)
+ 
+default: all
+ 
+.PHONY: all default clean strip
+ 
+COMMON_OBJS := \
+        thirdparty/emu2149.o \
+	src/CPU.o \
+	src/LCD.o \
+	src/main.o
+
+ifndef CONFIG_MIN
+COMMON_OBJS := \
+	$(COMMON_OBJS)
+endif
+
+ifdef CONFIG_W64
+OBJS := \
+	$(COMMON_OBJS) \
+	artifacts/megata.res
+else
+OBJS := \
+	$(COMMON_OBJS)
+endif
+ 
+# Rewrite paths to build directories
+OBJS := $(patsubst %,$(BUILD)/%,$(OBJS))
+
+$(TARG): $(OBJS)
+	$(E) [LD] $@    
+	$(Q)$(MKDIR) $(@D)
+	$(Q)$(CXX) -o $@ $(OBJS) $(LDFLAGS)
+
+clean:
+	$(E) [CLEAN]
+	$(Q)$(RM) $(TARG)
+	$(Q)$(RMDIR) $(BUILD)
+
+strip: $(TARG)
+	$(E) [STRIP]
+	$(Q)$(STRIP) $(TARG)
+
+$(BUILD)/%.o: %.cpp
+	$(E) [CXX] $@
+	$(Q)$(MKDIR) $(@D)
+	$(Q)$(CXX) -c $(CPPFLAGS) -o $@ $<
+
+$(BUILD)/%.o: %.c
+	$(E) [CC] $@
+	$(Q)$(MKDIR) $(@D)
+	$(Q)$(CC) -c $(CFLAGS) -o $@ $<
+
+$(BUILD)/%.res: %.rc
+	$(E) [RES] $@
+	$(Q)$(MKDIR) $(@D)
+	$(Q)$(WINDRES) $< -O coff -o $@ $(WINDRESARGS)
