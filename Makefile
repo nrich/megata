@@ -5,7 +5,7 @@ RM = rm -f
 RMDIR = rm -rf
 INC = -I src -I thirdparty -I thirdparty/raylib-cpp-5.5.0
 LDFLAGS = -lraylib
-CPPFLAGS = -g -O3 -std=c++20 $(INC) -Wall -pthread
+CPPFLAGS = -g -O3 -std=c++20 $(INC) -Wall
 CFLAGS = -g -O3 $(INC) -Wall -pthread
 STRIP = strip
  
@@ -13,11 +13,11 @@ ifdef CONFIG_W64
     CXX = x86_64-w64-mingw32-g++
     CC = x86_64-w64-mingw32-gcc
     ifdef CONFIG_MIN
-        LDFLAGS = -mwindows -static-libgcc -static-libstdc++ -L /opt/local/glfw-3.3.4.bin.WIN64/lib-mingw-w64/ -lglfw3 -L /opt/local/raylib-5.5_win64_mingw-w64/lib -lraylib -lgdi32 -lopengl32 -lwinmm
+        LDFLAGS = -mwindows -static-libgcc -static-libstdc++ -L /opt/local/raylib-5.5_win64_mingw-w64/lib -lraylib -lgdi32 -lopengl32 -lwinmm
         INC = -I src -I thirdparty -I thirdparty/raylib-cpp-5.5.0 -I /opt/local/raylib-5.5_win64_mingw-w64/include
         CPPFLAGS = -O3 -std=c++20 -pthread $(INC) -D_WIN64 -Wall
     else
-        LDFLAGS = -mconsole -static-libgcc -static-libstdc++ -L /opt/local/glfw-3.3.4.bin.WIN64/lib-mingw-w64/ -lglfw3 -L /opt/local/raylib-5.5_win64_mingw-w64/lib -lraylib -lgdi32 -lopengl32 -lwinmm
+        LDFLAGS = -mconsole -static-libgcc -static-libstdc++ -L /opt/local/raylib-5.5_win64_mingw-w64/lib -lraylib -lgdi32 -lopengl32 -lwinmm
         INC = -I src -I thirdparty -I thirdparty/raylib-cpp-5.5.0 -I /opt/local/raylib-5.5_win64_mingw-w64/include
         CPPFLAGS = -O3 -std=c++20 -pthread $(INC) -D_WIN64 -Wall
     endif
