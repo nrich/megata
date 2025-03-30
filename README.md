@@ -50,11 +50,3 @@ sudo make install RAYLIB_LIBTYPE=SHARED
 ``` shell
 make
 ```
-
-- Fedora:
-
-``` shell
-sudo dnf install @development-tools gcc-c++ SDL2-devel glew-devel gtk3-devel
-cd platforms/linux
-make
-```
