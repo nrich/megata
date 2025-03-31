@@ -33,6 +33,9 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #include <cmdline.h>
 #include <emu2149.h>
 #include <miniz.h>
+#include <imgui.h>
+#include <rlImGui.h>
+#include <nfd.hpp>
 
 #include "LCD.h"
 #include "CPU.h"
@@ -345,12 +348,14 @@ int main(int argc, char *argv[]) {
     argparser.add<int>("colour", 'c', "Colour", false, 0);
     argparser.parse_check(argc, argv);
 
+    NFD_Init();
+
     std::string rom_filename = argparser.get<std::string>("rom");
     std::string bios_filename = argparser.get<std::string>("bios");
     int scale = argparser.get<int>("scale");
 
     SetConfigFlags(FLAG_MSAA_4X_HINT|FLAG_VSYNC_HINT);
-    raylib::Window window(LCD::ScreenWidth*scale, LCD::ScreenHeight*scale, "Megata" + std::string(" (v") + std::string(VERSION) + ")");
+    raylib::Window window(1280, 720, "Megata" + std::string(" (v") + std::string(VERSION) + ")");
     SetTargetFPS(60);
 
     if (!load_file(rom_filename, ROM.data(), ROM.size())) {
@@ -410,6 +415,8 @@ int main(int argc, char *argv[]) {
         default:
             palette = green_palette;
     }
+
+    rlImGuiSetup(true);
 
     while (!window.ShouldClose()) {
         button_state = 0xFF;
@@ -486,11 +493,30 @@ int main(int argc, char *argv[]) {
 
         BeginDrawing();
         {
-            window.ClearBackground(RAYWHITE);
-            screen_texture.Draw(raylib::Rectangle(Vector2(LCD::ScreenWidth, LCD::ScreenHeight)), raylib::Rectangle(Vector2(LCD::ScreenWidth*scale, LCD::ScreenHeight*scale)));
+            int width = window.GetRenderWidth();
+            int height = window.GetRenderHeight();
+
+            Vector2 lcd_origin(-((width / 2) - (LCD::ScreenWidth*scale/2)), -((height / 2) - (LCD::ScreenHeight*scale / 2)));
+
+            window.ClearBackground(BLACK);
+            screen_texture.Draw(raylib::Rectangle(Vector2(LCD::ScreenWidth, LCD::ScreenHeight)), raylib::Rectangle(Vector2(LCD::ScreenWidth*scale, LCD::ScreenHeight*scale)), lcd_origin);
+            rlImGuiBegin();
+            {
+                if (ImGui::BeginMainMenuBar()) {
+                    if (ImGui::BeginMenu("File")) {
+                        if (ImGui::MenuItem("Open")) {
+                        }
+                        ImGui::EndMenu();
+                    }
+                    ImGui::EndMainMenuBar();
+                }
+            }
+            rlImGuiEnd();
         }
         EndDrawing();
     }
+    rlImGuiShutdown();
 
+    NFD_Quit();
     exit (0);
 }
