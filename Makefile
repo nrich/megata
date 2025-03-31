@@ -33,9 +33,6 @@ endif
 
 VERSION = $(shell cat VERSION.txt)
 CPPFLAGS := $(CPPFLAGS) -DVERSION="\"$(VERSION)\""
-ifdef CONFIG_MIN
-CPPFLAGS := $(CPPFLAGS) -DMINBUILD="1"
-endif
 LDFLAGS := $(LDFLAGS)
 
 # Temporary build directories
@@ -72,11 +69,6 @@ COMMON_OBJS := \
 	src/CPU.o \
 	src/LCD.o \
 	src/main.o
-
-ifndef CONFIG_MIN
-COMMON_OBJS := \
-	$(COMMON_OBJS)
-endif
 
 ifdef CONFIG_W64
 OBJS := \
