@@ -12,15 +12,9 @@ STRIP = strip
 ifdef CONFIG_W64
     CXX = x86_64-w64-mingw32-g++
     CC = x86_64-w64-mingw32-gcc
-    ifdef CONFIG_MIN
-        LDFLAGS = -mwindows -static-libgcc -static-libstdc++ -L /opt/local/raylib-5.5_win64_mingw-w64/lib -lraylib -lgdi32 -lopengl32 -lwinmm
-        INC = -I src -I thirdparty -I thirdparty/raylib-cpp-5.5.0 -I /opt/local/raylib-5.5_win64_mingw-w64/include
-        CPPFLAGS = -O3 -std=c++20 -pthread $(INC) -D_WIN64 -Wall
-    else
-        LDFLAGS = -mconsole -static-libgcc -static-libstdc++ -L /opt/local/raylib-5.5_win64_mingw-w64/lib -lraylib -lgdi32 -lopengl32 -lwinmm
-        INC = -I src -I thirdparty -I thirdparty/raylib-cpp-5.5.0 -I /opt/local/raylib-5.5_win64_mingw-w64/include
-        CPPFLAGS = -O3 -std=c++20 -pthread $(INC) -D_WIN64 -Wall
-    endif
+    LDFLAGS = -mwindows -static-libgcc -static-libstdc++ -L /opt/local/raylib-5.5_win64_mingw-w64/lib -lraylib -lgdi32 -lopengl32 -lwinmm
+    INC = -I src -I thirdparty -I thirdparty/raylib-cpp-5.5.0 -I /opt/local/raylib-5.5_win64_mingw-w64/include -I thirdparty/miniz
+    CPPFLAGS = -O3 -std=c++20 -pthread $(INC) -D_WIN64 -Wall
     WINDRES = x86_64-w64-mingw32-windres
     STRIP = x86_64-w64-mingw32-strip
     WINDRESARGS = 
