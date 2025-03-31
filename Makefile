@@ -3,7 +3,7 @@ CXX = g++
 CC = gcc
 RM = rm -f
 RMDIR = rm -rf
-INC = -I src -I thirdparty -I thirdparty/raylib-cpp-5.5.0
+INC = -I src -I thirdparty -I thirdparty/raylib-cpp-5.5.0 -I thirdparty/miniz
 LDFLAGS = -lraylib
 CPPFLAGS = -g -O3 -std=c++20 $(INC) -Wall
 CFLAGS = -g -O3 $(INC) -Wall -pthread
@@ -63,6 +63,7 @@ default: all
  
 COMMON_OBJS := \
         thirdparty/emu2149.o \
+        thirdparty/miniz/miniz.o \
 	src/CPU.o \
 	src/LCD.o \
 	src/main.o

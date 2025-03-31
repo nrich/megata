@@ -27,12 +27,12 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #include <iomanip>
 #include <thread>
 #include <memory>
+#include <filesystem>
 
 #include <raylib-cpp.hpp>
-
 #include <cmdline.h>
-
 #include <emu2149.h>
+#include <miniz.h>
 
 #include "LCD.h"
 #include "CPU.h"
@@ -274,6 +274,69 @@ static void AudioInputCallback(void *buffer, unsigned int frames) {
     PSG_calc_stereo(&psg, (int16_t *)buffer, frames);
 }
 
+static bool load_file(const std::string &filename, uint8_t *data, size_t size) {
+    std::string lc_filename = filename;
+
+    std::transform(lc_filename.begin(), lc_filename.end(), lc_filename.begin(), (int(*)(int)) tolower);
+
+    std::string extension = lc_filename.substr(lc_filename.find_last_of(".") + 1);
+
+    if (extension == "zip") {
+        mz_zip_archive zip_archive = {0};
+
+        if (!mz_zip_reader_init_file(&zip_archive, filename.c_str(), 0))
+            return false;
+
+        for (uint32_t i = 0; i < mz_zip_reader_get_num_files(&zip_archive); i++) {
+            mz_zip_archive_file_stat file_stat;
+
+            if (!mz_zip_reader_file_stat(&zip_archive, i, &file_stat)) {
+                mz_zip_reader_end(&zip_archive);
+                return false;
+            }
+
+            std::string lc_filename((const char*) file_stat.m_filename);
+            std::transform(lc_filename.begin(), lc_filename.end(), lc_filename.begin(), (int(*)(int)) tolower);
+            std::string extension = lc_filename.substr(lc_filename.find_last_of(".") + 1);
+
+            if (extension == "bin") {
+                void *buffer;
+                size_t uncomp_size;
+
+                buffer = mz_zip_reader_extract_file_to_heap(&zip_archive, file_stat.m_filename, &uncomp_size, 0);
+                if (!buffer) {
+                    mz_zip_reader_end(&zip_archive);
+                    return false;
+                }
+
+                bool success = false;
+                if (uncomp_size <= size) {
+                    std::memcpy(data, buffer, uncomp_size);
+                    success = true;
+                }
+
+                mz_zip_reader_end(&zip_archive);
+                free(buffer);
+
+                return success;
+            }
+        }
+
+        mz_zip_reader_end(&zip_archive);
+        return false;
+    } else {
+        std::filesystem::path file_path = filename;
+
+        if (std::filesystem::file_size(file_path) <= size) {
+            std::ifstream fh(filename, std::ios::binary|std::ios::in);
+            fh.read(reinterpret_cast<char*>(data), size);
+            return true;
+        }
+    }
+
+    return false;
+}
+
 int main(int argc, char *argv[]) {
     cmdline::parser argparser;
     argparser.add<std::string>("rom", 'r', "ROM", true, "");
@@ -290,11 +353,15 @@ int main(int argc, char *argv[]) {
     raylib::Window window(LCD::ScreenWidth*scale, LCD::ScreenHeight*scale, "Megata" + std::string(" (v") + std::string(VERSION) + ")");
     SetTargetFPS(60);
 
-    std::ifstream rom_fh(rom_filename, std::ios::binary|std::ios::in);
-    std::ifstream bios_fh(bios_filename, std::ios::binary|std::ios::in);
+    if (!load_file(rom_filename, ROM.data(), ROM.size())) {
+        std::cerr << "Could not open ROM file " << rom_filename << "\n";
+        exit(0);
+    }
 
-    rom_fh.read(reinterpret_cast<char*>(ROM.data()), ROM.size());
-    bios_fh.read(reinterpret_cast<char*>(BIOS.data()), BIOS.size());
+    if (!load_file(bios_filename, BIOS.data(), BIOS.size())) {
+        std::cerr << "Could not open BIOS file " << bios_filename << "\n";
+        exit(0);
+    }
 
     std::array<uint32_t, LCD::ScreenWidth*LCD::ScreenHeight> screen = {0xFF};
 
