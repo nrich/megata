@@ -384,7 +384,7 @@ static bool load_file(const std::string &filename, uint8_t *data, size_t size) {
 int main(int argc, char *argv[]) {
     cmdline::parser argparser;
     argparser.add<std::string>("rom", 'r', "ROM", false, "");
-    argparser.add<std::string>("bios", 'b', "BIOS", false, "");
+    argparser.add<std::string>("bios", 'b', "BIOS", false, "gamate.zip");
     argparser.add<int>("scale", 's', "Screen scale", false, 4);
     argparser.add<int>("colour", 'c', "Colour", false, 0);
     argparser.parse_check(argc, argv);
