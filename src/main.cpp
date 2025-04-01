@@ -634,7 +634,7 @@ int main(int argc, char *argv[]) {
                         ImGui::EndMenu();
                     }
 
-                    if (ImGui::BeginMenu("Display")) {
+                    if (ImGui::BeginMenu("Video")) {
                         if (ImGui::BeginMenu("Scale")) {
                             if (ImGui::MenuItem("1x")) {
                                 scale = 1;
