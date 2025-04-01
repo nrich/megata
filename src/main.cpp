@@ -40,17 +40,43 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #include "LCD.h"
 #include "CPU.h"
 
-static std::array<uint8_t, 1024> RAM = {0xFF};
 static std::array<uint8_t, 524288> ROM; // biggest rom is 512KiB
 static std::array<uint8_t, 4096> BIOS;
 
 static LCD lcd;
-static uint8_t button_state = 0xFF;
-
-static uint32_t bank0_offset = 0x0000;
-static uint32_t bank1_offset = 0x4000;
 
 static PSG psg;
+
+struct RunningState {
+    std::array<uint8_t, 1024> RAM;
+    uint8_t button_state;
+    int protection_check;
+    uint32_t bank0_offset;
+    uint32_t bank1_offset;
+    bool paused;
+    bool audio_enabled;
+
+    RunningState() {
+        reset();
+    }
+
+    void reset() {
+        reset(true, true);
+    };
+
+    void reset(bool is_paused, bool is_audio_enabled) {
+        bank0_offset = 0x0000;
+        bank1_offset = 0x4000;
+        button_state = 0xFF;
+        protection_check = 8;
+        RAM.fill(0xFF);
+
+        paused = is_paused;
+        audio_enabled = is_audio_enabled;
+    }
+};
+
+static RunningState running_state;
 
 static uint32_t color_to_u32(const raylib::Color &color) {
     uint8_t r = color.GetR();
@@ -94,7 +120,7 @@ static const std::array<uint32_t, 4> gbp_palette = {
 uint8_t read6502(uint16_t address) {
     if (address >= 0x0000 && address <= 0x1FFF) {
         // 1KiB RAM mirrored 8 times
-        return RAM[address & 0x03FF];
+        return running_state.RAM[address & 0x03FF];
     }
 
     if (address >= 0x2000 && address <= 0x3FFF) {
@@ -109,7 +135,7 @@ uint8_t read6502(uint16_t address) {
 
     if (address >= 0x4400 && address <= 0x47FF) {
         // UART TX
-        return button_state;
+        return running_state.button_state;
     }
 
     if (address >= 0x4800 && address <= 0x4BFF) {
@@ -157,22 +183,20 @@ uint8_t read6502(uint16_t address) {
     */
     if (address >= 0x6000 && address <= 0x9FFF) {
         // ROM (cartridge) data (bank 0)
-        static int protection_check = 8;
-
-        if (protection_check) {
+        if (running_state.protection_check) {
             uint8_t check = 0;
 
-            check = ((0x47 >> --protection_check) & 0x01) << 1;
+            check = ((0x47 >> --running_state.protection_check) & 0x01) << 1;
 
             return check;
         }
 
-        return ROM[bank0_offset + (address - 0x6000)];
+        return ROM[running_state.bank0_offset + (address - 0x6000)];
     }
 
     if (address >= 0xA000 && address <= 0xDFFF) {
         // ROM (cartridge) data (bank 1)
-        return ROM[bank1_offset + (address - 0xA000)];
+        return ROM[running_state.bank1_offset + (address - 0xA000)];
     }
 
     if (address >= 0xE000 && address <= 0xFFFF) {
@@ -188,7 +212,7 @@ uint8_t read6502(uint16_t address) {
 
 void write6502(uint16_t address, uint8_t value) {
     if (address >= 0x0000 && address <= 0x1FFF) {
-        RAM[address & 0x03FF] = value;
+        running_state.RAM[address & 0x03FF] = value;
         return;
     }
 
@@ -253,11 +277,11 @@ void write6502(uint16_t address, uint8_t value) {
     if (address >= 0x6000 && address <= 0xDFFF) {
         // ROM (cartridge) data
         if (address >= 0xC000 && address <= 0xDFFF) {
-            bank1_offset = 0x4000 * value;
+            running_state.bank1_offset = 0x4000 * value;
         }
 
         if (address >= 0x8000 && address <=  0x9FFF) {
-            bank0_offset = 0x4000 * value;
+            running_state.bank0_offset = 0x4000 * value;
         }
         return;
     }
@@ -274,7 +298,11 @@ void write6502(uint16_t address, uint8_t value) {
 }
 
 static void AudioInputCallback(void *buffer, unsigned int frames) {
-    PSG_calc_stereo(&psg, (int16_t *)buffer, frames);
+    if (running_state.audio_enabled) {
+        PSG_calc_stereo(&psg, (int16_t *)buffer, frames);
+    } else {
+        std::memset(buffer, 0, sizeof(int16_t) * frames);
+    }
 }
 
 static bool load_file(const std::string &filename, uint8_t *data, size_t size) {
@@ -342,40 +370,49 @@ static bool load_file(const std::string &filename, uint8_t *data, size_t size) {
 
 int main(int argc, char *argv[]) {
     cmdline::parser argparser;
-    argparser.add<std::string>("rom", 'r', "ROM", true, "");
-    argparser.add<std::string>("bios", 'b', "BIOS", true, "");
+    argparser.add<std::string>("rom", 'r', "ROM", false, "");
+    argparser.add<std::string>("bios", 'b', "BIOS", false, "");
     argparser.add<int>("scale", 's', "Screen scale", false, 4);
     argparser.add<int>("colour", 'c', "Colour", false, 0);
     argparser.parse_check(argc, argv);
 
-    NFD_Init();
+    NFD::Init();
 
     std::string rom_filename = argparser.get<std::string>("rom");
     std::string bios_filename = argparser.get<std::string>("bios");
     int scale = argparser.get<int>("scale");
 
-    SetConfigFlags(FLAG_MSAA_4X_HINT|FLAG_VSYNC_HINT);
+    SetConfigFlags(FLAG_MSAA_4X_HINT|FLAG_VSYNC_HINT|FLAG_WINDOW_RESIZABLE);
     raylib::Window window(1280, 720, "Megata" + std::string(" (v") + std::string(VERSION) + ")");
     SetTargetFPS(60);
 
-    if (!load_file(rom_filename, ROM.data(), ROM.size())) {
-        std::cerr << "Could not open ROM file " << rom_filename << "\n";
-        exit(0);
+    bool has_bios = false;
+    bool has_rom = false;
+
+    if (rom_filename.length()) {
+        if (load_file(rom_filename, ROM.data(), ROM.size())) {
+            has_rom = true;
+        } else {
+            std::cerr << "Could not open ROM file " << rom_filename << "\n";
+        }
     }
 
-    if (!load_file(bios_filename, BIOS.data(), BIOS.size())) {
-        std::cerr << "Could not open BIOS file " << bios_filename << "\n";
-        exit(0);
+    if (bios_filename.length()) {
+        if (load_file(bios_filename, BIOS.data(), BIOS.size())) {
+            has_bios = true;
+        } else {
+            std::cerr << "Could not open BIOS file " << bios_filename << "\n";
+        }
     }
+
+    running_state.paused = !(has_bios && has_rom);
 
     std::array<uint32_t, LCD::ScreenWidth*LCD::ScreenHeight> screen = {0xFF};
 
     raylib::Image screen_image(screen.data(), LCD::ScreenWidth, LCD::ScreenHeight);
     raylib::TextureUnmanaged screen_texture(screen_image);
 
-    RAM.fill(0xFF);
-
-    CPU cpu(read6502, write6502, [](){ return INT::QUIT; });
+    CPU cpu(read6502, write6502, [](){return INT::QUIT;});
 
     cpu.reset();
     cpu.setPeriod(32768);
@@ -419,74 +456,76 @@ int main(int argc, char *argv[]) {
     rlImGuiSetup(true);
 
     while (!window.ShouldClose()) {
-        button_state = 0xFF;
+        running_state.button_state = 0xFF;
         if (IsKeyDown(KEY_UP)) {
-            button_state ^= 0b00000001;
+            running_state.button_state ^= 0b00000001;
         }
         if (IsKeyDown(KEY_DOWN)) {
-            button_state ^= 0b00000010;
+            running_state.button_state ^= 0b00000010;
         }
         if (IsKeyDown(KEY_LEFT)) {
-            button_state ^= 0b00000100;
+            running_state.button_state ^= 0b00000100;
         }
         if (IsKeyDown(KEY_RIGHT)) {
-            button_state ^= 0b00001000;
+            running_state.button_state ^= 0b00001000;
         }
         if (IsKeyDown(KEY_A)) {
-            button_state ^= 0b00010000;
+            running_state.button_state ^= 0b00010000;
         }
         if (IsKeyDown(KEY_S)) {
-            button_state ^= 0b00100000;
+            running_state.button_state ^= 0b00100000;
         }
         if (IsKeyDown(KEY_Q)) {
-            button_state ^= 0b01000000;
+            running_state.button_state ^= 0b01000000;
         }
         if (IsKeyDown(KEY_W)) {
-            button_state ^= 0b10000000;
+            running_state.button_state ^= 0b10000000;
         }
 
         if (IsGamepadAvailable(gamepad)) {
             if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_LEFT_FACE_UP)) {
-                button_state ^= 0b00000001;
+                running_state.button_state ^= 0b00000001;
             }
 
             if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) {
-                button_state ^= 0b00000010;
+                running_state.button_state ^= 0b00000010;
             }
 
             if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_LEFT_FACE_LEFT)) {
-                button_state ^= 0b00000100;
+                running_state.button_state ^= 0b00000100;
             }
 
             if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)) {
-                button_state ^= 0b00001000;
+                running_state.button_state ^= 0b00001000;
             }
 
             if (GetGamepadButtonPressed() == GAMEPAD_BUTTON_RIGHT_FACE_LEFT) {
-                button_state ^= 0b00010000;
+                running_state.button_state ^= 0b00010000;
             }
 
             if (GetGamepadButtonPressed() == GAMEPAD_BUTTON_RIGHT_FACE_DOWN) {
-                button_state ^= 0b00100000;
+                running_state.button_state ^= 0b00100000;
             }
 
             if (GetGamepadButtonPressed() == GAMEPAD_BUTTON_MIDDLE_LEFT) {
-                button_state ^= 0b10000000;
+                running_state.button_state ^= 0b10000000;
             }
 
             if (GetGamepadButtonPressed() == GAMEPAD_BUTTON_MIDDLE_RIGHT) {
-                button_state ^= 0b01000000;
+                running_state.button_state ^= 0b01000000;
             }
         }
 
-        cpu.run();
-        cpu.interupt(INT::IRQ);
-        cpu.setPeriod(32768);
-        cpu.run();
-        cpu.interupt(INT::IRQ);
-        cpu.setPeriod(7364);
-        cpu.run();
-        cpu.setPeriod(32768 - 7364);
+        if (!running_state.paused) {
+            cpu.run();
+            cpu.interupt(INT::IRQ);
+            cpu.setPeriod(32768);
+            cpu.run();
+            cpu.interupt(INT::IRQ);
+            cpu.setPeriod(7364);
+            cpu.run();
+            cpu.setPeriod(32768 - 7364);
+        }
 
         lcd.update(palette, screen);
         screen_texture.Update(screen.data());
@@ -504,10 +543,125 @@ int main(int argc, char *argv[]) {
             {
                 if (ImGui::BeginMainMenuBar()) {
                     if (ImGui::BeginMenu("File")) {
-                        if (ImGui::MenuItem("Open")) {
+                        if (ImGui::MenuItem("Open ROM")) {
+                            NFD::UniquePath out_path;
+
+                            nfdu8filteritem_t filters[2] = {{"BIN", "bin"}, {"ZIP", "zip"}};
+
+                            nfdresult_t result = NFD::OpenDialog(out_path, filters);
+
+                            if (result == NFD_OKAY) {
+                                std::string rom_path = out_path.get();
+
+                                ROM = {0};
+                                if (load_file(rom_path, ROM.data(), ROM.size())) {
+                                    has_rom = true;
+                                } else {
+                                    std::cerr << "Could not open ROM file " << rom_filename << "\n";
+                                }
+
+                                has_rom = true;
+
+                                running_state.reset(!(has_bios && has_rom), running_state.audio_enabled);
+                                lcd.reset();
+
+                                cpu.reset();
+                                cpu.setPeriod(32768);
+                            }
+                        }
+                        if (ImGui::MenuItem("Load BIOS")) {
+                            NFD::UniquePath out_path;
+
+                            nfdu8filteritem_t filters[2] = {{"BIN", "bin"}, {"ZIP", "zip"}};
+
+                            nfdresult_t result = NFD::OpenDialog(out_path, filters);
+
+                            if (result == NFD_OKAY) {
+                                std::string rom_path = out_path.get();
+
+                                ROM = {0};
+                                if (load_file(rom_path, BIOS.data(), BIOS.size())) {
+                                    has_bios = true;
+                                } else {
+                                    std::cerr << "Could not open BIOS file " << rom_filename << "\n";
+                                }
+
+                                running_state.reset(!(has_bios && has_rom), running_state.audio_enabled);
+                                lcd.reset();
+
+                                cpu.reset();
+                                cpu.setPeriod(32768);
+                            }
+                        }
+
+                        if (ImGui::MenuItem("Quit", "ESC")) {
+                            break;
+                            window.Close();
+                        }
+
+                        ImGui::EndMenu();
+                    }
+
+                    if (ImGui::BeginMenu("Display")) {
+                        if (ImGui::BeginMenu("Scale")) {
+                            if (ImGui::MenuItem("1x")) {
+                                scale = 1;
+                            }
+                            if (ImGui::MenuItem("2x")) {
+                                scale = 2;
+                            }
+                            if (ImGui::MenuItem("4x")) {
+                                scale = 4;
+                            }
+                            if (ImGui::MenuItem("8x")) {
+                                scale = 8;
+                            }
+                            ImGui::EndMenu();
+                        }
+
+                        if (ImGui::BeginMenu("Palette")) {
+                            if (ImGui::MenuItem("Default")) {
+                                palette = green_palette;
+                            }
+                            if (ImGui::MenuItem("Greyscale")) {
+                                palette = grey_palette;
+                            }
+                            if (ImGui::MenuItem("GB")) {
+                                palette = gb_palette;
+                            }
+                            if (ImGui::MenuItem("GB Pocket")) {
+                                palette = gbp_palette;
+                            }
+                            ImGui::EndMenu();
+                        }
+
+                        ImGui::EndMenu();
+                    }
+
+                    if (ImGui::BeginMenu("Audio")) {
+                        if (ImGui::MenuItem("Enable Audio", "", &running_state.audio_enabled)) {
+                        }
+
+                        ImGui::EndMenu();
+                    }
+
+                    if (ImGui::BeginMenu("System")) {
+                        if (ImGui::MenuItem("Pause")) {
+                        }
+                        if (ImGui::MenuItem("Reset")) {
+                            running_state.reset(!(has_bios && has_rom), running_state.audio_enabled);
+                            lcd.reset();
+
+                            cpu.reset();
+                            cpu.setPeriod(32768);
                         }
                         ImGui::EndMenu();
                     }
+
+                    if (ImGui::BeginMenu("About")) {
+                        ImGui::EndMenu();
+                    }
+
                     ImGui::EndMainMenuBar();
                 }
             }
@@ -517,6 +671,6 @@ int main(int argc, char *argv[]) {
     }
     rlImGuiShutdown();
 
-    NFD_Quit();
+    NFD::Quit();
     exit (0);
 }

@@ -65,6 +65,24 @@ public:
     void write(uint16_t address, uint8_t value);
     uint8_t read(uint16_t address);
 
+    void reset() {
+        bitPlanes[0].fill(0x00);
+        bitPlanes[1].fill(0x00);
+
+        bitPlaneSelected = 0;
+
+        displayBlank = true;
+        incrementVertical = false;
+        swapBitPlanes = false;
+        windowMode = false;
+        noRefresh = false;
+
+        vramAddress = 0;
+
+        xScroll = 0;
+        yScroll = 0;
+    }
+
     ~LCD();
 
 };
