@@ -590,6 +590,8 @@ int main(int argc, char *argv[]) {
 
                                 cpu.reset();
                                 cpu.setPeriod(32768);
+                            } else {
+                                running_state.audio_enabled = is_audio_enabled;
                             }
                         }
                         if (ImGui::MenuItem("Load BIOS")) {
@@ -619,6 +621,8 @@ int main(int argc, char *argv[]) {
 
                                 cpu.reset();
                                 cpu.setPeriod(32768);
+                            } else {
+                                running_state.audio_enabled = is_audio_enabled;
                             }
                         }
 
