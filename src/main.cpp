@@ -36,9 +36,20 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #include <imgui.h>
 #include <rlImGui.h>
 #include <nfd.hpp>
+#include <license.h>
 
 #include "LCD.h"
 #include "CPU.h"
+
+#define MEGATA_TITLE_ASCII "" \
+" __  __                  _        \n" \
+"|  \\/  | ___  __ _  __ _| |_ __ _ \n" \
+"| |\\/| |/ _ \\/ _` |/ _` | __/ _` |\n" \
+"| |  | |  __/ (_| | (_| | || (_| |\n" \
+"|_|  |_|\\___|\\__, |\\__,_|\\__\\__,_|\n" \
+"             |___/                \n"
+
+
 
 static std::array<uint8_t, 524288> ROM; // biggest rom is 512KiB
 static std::array<uint8_t, 4096> BIOS;
@@ -455,6 +466,11 @@ int main(int argc, char *argv[]) {
 
     rlImGuiSetup(true);
 
+    bool show_about = false;
+
+    auto &imgui_io = ImGui::GetIO();
+    imgui_io.IniFilename = nullptr;
+
     while (!window.ShouldClose()) {
         running_state.button_state = 0xFF;
         if (IsKeyDown(KEY_UP)) {
@@ -544,6 +560,9 @@ int main(int argc, char *argv[]) {
                 if (ImGui::BeginMainMenuBar()) {
                     if (ImGui::BeginMenu("File")) {
                         if (ImGui::MenuItem("Open ROM")) {
+                            bool is_audio_enabled = running_state.audio_enabled;
+                            running_state.audio_enabled = false;
+
                             NFD::UniquePath out_path;
 
                             nfdu8filteritem_t filters[2] = {{"BIN", "bin"}, {"ZIP", "zip"}};
@@ -562,7 +581,9 @@ int main(int argc, char *argv[]) {
 
                                 has_rom = true;
 
-                                running_state.reset(!(has_bios && has_rom), running_state.audio_enabled);
+                                PSG_reset(&psg);
+
+                                running_state.reset(!(has_bios && has_rom), is_audio_enabled);
                                 lcd.reset();
 
                                 cpu.reset();
@@ -570,6 +591,9 @@ int main(int argc, char *argv[]) {
                             }
                         }
                         if (ImGui::MenuItem("Load BIOS")) {
+                            bool is_audio_enabled = running_state.audio_enabled;
+                            running_state.audio_enabled = false;
+
                             NFD::UniquePath out_path;
 
                             nfdu8filteritem_t filters[2] = {{"BIN", "bin"}, {"ZIP", "zip"}};
@@ -586,7 +610,9 @@ int main(int argc, char *argv[]) {
                                     std::cerr << "Could not open BIOS file " << rom_filename << "\n";
                                 }
 
-                                running_state.reset(!(has_bios && has_rom), running_state.audio_enabled);
+                                PSG_reset(&psg);
+
+                                running_state.reset(!(has_bios && has_rom), is_audio_enabled);
                                 lcd.reset();
 
                                 cpu.reset();
@@ -659,10 +685,63 @@ int main(int argc, char *argv[]) {
                     }
 
                     if (ImGui::BeginMenu("About")) {
+                        if (ImGui::MenuItem("About Megate")) {
+                            show_about = true;
+                            std::cerr << "HERE\n";
+                        }
+
                         ImGui::EndMenu();
                     }
 
                     ImGui::EndMainMenuBar();
+                }
+
+                if (show_about) {
+                    ImGui::OpenPopup("About Megate");
+
+                    static const ImVec4 cyan =          ImVec4(0.10f, 0.90f, 0.90f, 1.0f);
+
+                    if (ImGui::BeginPopupModal("About Megate", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+                        ImGui::TextColored(cyan, "%s\n", MEGATA_TITLE_ASCII);
+
+                        if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None)) {
+                            if (ImGui::BeginTabItem("Build Info")) {
+                                ImGui::BeginChild("build", ImVec2(0, 100), false, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+
+                                ImGui::Text("Build: %s", VERSION);
+
+                                #if defined(__DATE__) && defined(__TIME__)
+                                ImGui::Text("Built on: %s - %s", __DATE__, __TIME__);
+                                #endif
+
+                                #if defined(__GNUC__) && !defined(__llvm__) && !defined(__INTEL_COMPILER)
+                                ImGui::Text("GCC %d.%d.%d", (int)__GNUC__, (int)__GNUC_MINOR__, (int)__GNUC_PATCHLEVEL__);
+                                #endif
+
+                                ImGui::Text("raylib %s (%d.%d.%d)", RAYLIB_VERSION, RAYLIB_VERSION_MAJOR, RAYLIB_VERSION_MINOR, RAYLIB_VERSION_PATCH);
+                                ImGui::Text("Dear ImGui %s (%d)", IMGUI_VERSION, IMGUI_VERSION_NUM);
+
+                                ImGui::EndChild();
+                                ImGui::EndTabItem();
+                            }
+
+                            if (ImGui::BeginTabItem("LICENSE")) {
+                                ImGui::BeginChild("license", ImVec2(0, 100), false, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+                                ImGui::TextUnformatted(GPL_LICENSE_STR);
+                                ImGui::EndChild();
+                                ImGui::EndTabItem();
+                            }
+
+                            ImGui::EndTabBar();
+                        }
+
+                        if (ImGui::Button("OK", ImVec2(120, 0))) {
+                            ImGui::CloseCurrentPopup();
+                            show_about = false;
+                        }
+
+                        ImGui::EndPopup();
+                    }
                 }
             }
             rlImGuiEnd();
