@@ -287,11 +287,13 @@ void write6502(uint16_t address, uint8_t value) {
 
     if (address >= 0x6000 && address <= 0xDFFF) {
         // ROM (cartridge) data
-        if (address >= 0xC000 && address <= 0xDFFF) {
+        if (address == 0xC000) {
+            // Standard bank switcher
             running_state.bank1_offset = 0x4000 * value;
         }
 
-        if (address >= 0x8000 && address <=  0x9FFF) {
+        if (address == 0x8000) {
+            // 4 in 1 Regular bank switcher
             running_state.bank0_offset = 0x4000 * value;
         }
         return;
