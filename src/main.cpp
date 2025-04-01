@@ -705,10 +705,14 @@ int main(int argc, char *argv[]) {
                 if (show_about) {
                     ImGui::OpenPopup("About Megate");
 
-                    static const ImVec4 cyan =          ImVec4(0.10f, 0.90f, 0.90f, 1.0f);
-
                     if (ImGui::BeginPopupModal("About Megate", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-                        ImGui::TextColored(cyan, "%s\n", MEGATA_TITLE_ASCII);
+                        ImGui::Text("%s\n", MEGATA_TITLE_ASCII);
+
+                        ImGui::Text("  By Neil Richardson (nrich@neiltopia.com)");
+                        ImGui::Text(" "); ImGui::SameLine();
+                        ImGui::TextLinkOpenURL("https://github.com/nrich/megata");
+                        ImGui::NewLine();
+
 
                         if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None)) {
                             if (ImGui::BeginTabItem("Build Info")) {
