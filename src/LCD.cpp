@@ -56,7 +56,7 @@ void LCD::positionX(const uint8_t x) {
 }
 
 void LCD::positionY(const uint8_t y) {
-    vramAddress = ((vramAddress & 0x1F) | (y << 5)) & 0x1FFF;
+    vramAddress = ((vramAddress & 0x001F) | (y << 5)) & 0x1FFF;
 }
 
 void LCD::raw(const uint8_t data) {
@@ -115,8 +115,8 @@ std::pair<uint8_t, uint8_t> LCD::translate(const int scan_line) const {
 }
 
 uint32_t LCD::getPixel(const int x_pos, const int y_pos) const {
-    uint8_t x = x_pos & 0xff;
-    uint8_t y = y_pos & 0xff;
+    uint8_t x = x_pos & 0xFF;
+    uint8_t y = y_pos & 0xFF;
 
     int address = (y * 0x20) + (x >> 3);
 
