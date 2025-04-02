@@ -49,7 +49,7 @@ class LCD {
     void positionY(const uint8_t y);
     void raw(const uint8_t data);
 
-    std::pair<uint8_t, uint8_t> translate(const int scan_line) const;
+    std::pair<int32_t, int32_t> translate(const int scan_line) const;
 
     uint32_t getPixel(const int x_pos, const int y_pos) const;
 

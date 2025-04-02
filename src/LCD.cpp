@@ -74,8 +74,8 @@ void LCD::vramAddressIncrement() {
     vramAddress &= 0x1FFF;
 }
 
-std::pair<uint8_t, uint8_t> LCD::translate(const int scan_line) const {
-    std::pair<uint8_t, uint8_t> pos(0, 0);
+std::pair<int32_t, int32_t> LCD::translate(const int scan_line) const {
+    std::pair<int32_t, int32_t> pos(0, 0);
 
     if (yScroll < 0xC8) {
         pos.second = scan_line + yScroll;
