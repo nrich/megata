@@ -447,8 +447,10 @@ int main(int argc, char *argv[]) {
 
         audio_stream->Play();
         audio_stream->SetCallback(AudioInputCallback);
+        running_state.audio_enabled = true;
     } catch (raylib::RaylibException &rle) {
         std::cerr << "Disabling sound\n";
+        running_state.audio_enabled = false;
     }
 
     std::array<uint32_t, 4> palette;
