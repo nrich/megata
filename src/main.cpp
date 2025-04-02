@@ -312,9 +312,9 @@ void write6502(uint16_t address, uint8_t value) {
 
 static void AudioInputCallback(void *buffer, unsigned int frames) {
     if (running_state.audio_enabled) {
-        PSG_calc_stereo(&psg, (int16_t *)buffer, frames);
+        PSG_calc_stereo(&psg, (int16_t *)buffer, frames * 2);
     } else {
-        std::memset(buffer, 0, sizeof(int16_t) * frames);
+        std::memset(buffer, 0, sizeof(int16_t) * frames * 2);
     }
 }
 
@@ -396,7 +396,7 @@ int main(int argc, char *argv[]) {
     int scale = argparser.get<int>("scale");
 
     SetConfigFlags(FLAG_MSAA_4X_HINT|FLAG_VSYNC_HINT|FLAG_WINDOW_RESIZABLE);
-    raylib::Window window(1280, 720, "Megata" + std::string(" (v") + std::string(VERSION) + ")");
+    raylib::Window window(1280, 960, "Megata" + std::string(" (v") + std::string(VERSION) + ")");
     SetTargetFPS(60);
 
     bool has_bios = false;
@@ -425,14 +425,9 @@ int main(int argc, char *argv[]) {
     raylib::Image screen_image(screen.data(), LCD::ScreenWidth, LCD::ScreenHeight);
     raylib::TextureUnmanaged screen_texture(screen_image);
 
-    CPU cpu(read6502, write6502, [](){return INT::QUIT;});
-
-    cpu.reset();
-    cpu.setPeriod(32768);
-
     int gamepad = 0;
 
-    PSG_init(&psg, 4433000, 44100);
+    PSG_init(&psg, 4433000/4, 44100);
     PSG_setVolumeMode(&psg, 2);
     PSG_set_quality(&psg, true);
     PSG_setFlags(&psg, EMU2149_ZX_STEREO);
@@ -443,7 +438,7 @@ int main(int argc, char *argv[]) {
 
     try {
         audiodevice = std::make_unique<raylib::AudioDevice>();
-        audio_stream = std::make_unique<raylib::AudioStream>(44100, 16, 1);
+        audio_stream = std::make_unique<raylib::AudioStream>(44100, 16, 2);
 
         audio_stream->Play();
         audio_stream->SetCallback(AudioInputCallback);
@@ -474,6 +469,10 @@ int main(int argc, char *argv[]) {
 
     auto &imgui_io = ImGui::GetIO();
     imgui_io.IniFilename = nullptr;
+
+    CPU cpu(read6502, write6502, [](){return INT::QUIT;});
+    cpu.reset();
+    cpu.setPeriod(32768);
 
     while (!window.ShouldClose()) {
         running_state.button_state = 0xFF;
