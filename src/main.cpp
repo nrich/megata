@@ -261,9 +261,9 @@ int main(int argc, char *argv[]) {
     emulator.bios = argparser.get<std::string>("bios");
     emulator.scale = argparser.get<int>("scale");
 
-    SetConfigFlags(FLAG_MSAA_4X_HINT|FLAG_VSYNC_HINT|FLAG_WINDOW_RESIZABLE);
+    SetConfigFlags(FLAG_MSAA_4X_HINT|FLAG_WINDOW_RESIZABLE);
     raylib::Window window(1280, 960, "Megata" + std::string(" (v") + std::string(VERSION) + ")");
-    SetTargetFPS(60);
+    SetTargetFPS(68);
 
     if (emulator.rom.length()) {
         if (!load_file(emulator.rom, ROM.data(), ROM.size())) {
