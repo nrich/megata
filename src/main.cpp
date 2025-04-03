@@ -376,19 +376,19 @@ int main(int argc, char *argv[]) {
                 running_state.button_state ^= 0b00001000;
             }
 
-            if (GetGamepadButtonPressed() == GAMEPAD_BUTTON_RIGHT_FACE_LEFT) {
+            if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_RIGHT_FACE_LEFT)) {
                 running_state.button_state ^= 0b00010000;
             }
 
-            if (GetGamepadButtonPressed() == GAMEPAD_BUTTON_RIGHT_FACE_DOWN) {
+            if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
                 running_state.button_state ^= 0b00100000;
             }
 
-            if (GetGamepadButtonPressed() == GAMEPAD_BUTTON_MIDDLE_LEFT) {
+            if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_MIDDLE_LEFT)) {
                 running_state.button_state ^= 0b10000000;
             }
 
-            if (GetGamepadButtonPressed() == GAMEPAD_BUTTON_MIDDLE_RIGHT) {
+            if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_MIDDLE_RIGHT)) {
                 running_state.button_state ^= 0b01000000;
             }
         }
