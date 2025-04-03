@@ -32,101 +32,28 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #include <raylib-cpp.hpp>
 #include <cmdline.h>
 #include <emu2149.h>
-#include <miniz.h>
+#include <nfd.hpp>
 #include <imgui.h>
 #include <rlImGui.h>
-#include <nfd.hpp>
-#include <license.h>
 
-#include "LCD.h"
 #include "CPU.h"
+#include "LCD.h"
+#include "Emulation.h"
+#include "UI.h"
 
-#define MEGATA_TITLE_ASCII "" \
-" __  __                  _        \n" \
-"|  \\/  | ___  __ _  __ _| |_ __ _ \n" \
-"| |\\/| |/ _ \\/ _` |/ _` | __/ _` |\n" \
-"| |  | |  __/ (_| | (_| | || (_| |\n" \
-"|_|  |_|\\___|\\__, |\\__,_|\\__\\__,_|\n" \
-"             |___/                \n"
-
-
-
-static std::array<uint8_t, 524288> ROM; // biggest rom is 512KiB
-static std::array<uint8_t, 4096> BIOS;
+std::array<uint8_t, 524288> ROM; // biggest rom is 512KiB
+std::array<uint8_t, 4096> BIOS;
 
 static LCD lcd;
 
-static PSG psg;
-
-struct RunningState {
-    std::array<uint8_t, 1024> RAM;
-    uint8_t button_state;
-    int protection_check;
-    uint32_t bank0_offset;
-    uint32_t bank1_offset;
-    bool paused;
-    bool audio_enabled;
-
-    RunningState() {
-        reset();
-    }
-
-    void reset() {
-        reset(true, true);
-    };
-
-    void reset(bool is_paused, bool is_audio_enabled) {
-        bank0_offset = 0x0000;
-        bank1_offset = 0x4000;
-        button_state = 0xFF;
-        protection_check = 8;
-        RAM.fill(0xFF);
-
-        paused = is_paused;
-        audio_enabled = is_audio_enabled;
-    }
-};
+PSG psg;
 
 static RunningState running_state;
 
-static uint32_t color_to_u32(const raylib::Color &color) {
-    uint8_t r = color.GetR();
-    uint8_t g = color.GetG();
-    uint8_t b = color.GetB();
-    uint8_t a = color.GetA();
-
-    uint32_t c = ((uint32_t)a << 24) | ((uint32_t)b << 16) | ((uint32_t)g << 8) | r;
-
-    return c;
-}
-
-static const std::array<uint32_t, 4> green_palette = {
-    color_to_u32(raylib::Color(0x6B, 0xA6, 0x4A, 0xFF)),
-    color_to_u32(raylib::Color(0x43, 0x7A, 0x63, 0xFF)),
-    color_to_u32(raylib::Color(0x25, 0x59, 0x55, 0xFF)),
-    color_to_u32(raylib::Color(0x12, 0x42, 0x4C, 0xFF)),
-};
-
-static const std::array<uint32_t, 4> grey_palette = {
-    color_to_u32(raylib::Color(0xBA, 0xBA, 0xBA, 0xFF)),
-    color_to_u32(raylib::Color(0x75, 0x75, 0x75, 0xFF)),
-    color_to_u32(raylib::Color(0x35, 0x35, 0x35, 0xFF)),
-    color_to_u32(raylib::Color(0x1A, 0x1A, 0x1A, 0xFF)),
-};
-
-static const std::array<uint32_t, 4> gb_palette = {
-    color_to_u32(raylib::Color(0x7b, 0x82, 0x10, 0xFF)),
-    color_to_u32(raylib::Color(0x5a, 0x79, 0x42, 0xFF)),
-    color_to_u32(raylib::Color(0x39, 0x59, 0x4A, 0xFF)),
-    color_to_u32(raylib::Color(0x29, 0x41, 0x39, 0xFF)),
-};
-
-static const std::array<uint32_t, 4> gbp_palette = {
-    color_to_u32(raylib::Color(0xC5, 0xCA, 0xA4, 0xFF)),
-    color_to_u32(raylib::Color(0x8C, 0x92, 0x6B, 0xFF)),
-    color_to_u32(raylib::Color(0x4A, 0x51, 0x38, 0xFF)),
-    color_to_u32(raylib::Color(0x18, 0x18, 0x18, 0xFF)),
-};
+extern Palette green_palette;
+extern Palette grey_palette;
+extern Palette gb_palette;
+extern Palette gbp_palette;
 
 uint8_t read6502(uint16_t address) {
     if (address >= 0x0000 && address <= 0x1FFF) {
@@ -318,69 +245,6 @@ static void AudioInputCallback(void *buffer, unsigned int frames) {
     }
 }
 
-static bool load_file(const std::string &filename, uint8_t *data, size_t size) {
-    std::string lc_filename = filename;
-
-    std::transform(lc_filename.begin(), lc_filename.end(), lc_filename.begin(), (int(*)(int)) tolower);
-
-    std::string extension = lc_filename.substr(lc_filename.find_last_of(".") + 1);
-
-    if (extension == "zip") {
-        mz_zip_archive zip_archive = {0};
-
-        if (!mz_zip_reader_init_file(&zip_archive, filename.c_str(), 0))
-            return false;
-
-        for (uint32_t i = 0; i < mz_zip_reader_get_num_files(&zip_archive); i++) {
-            mz_zip_archive_file_stat file_stat;
-
-            if (!mz_zip_reader_file_stat(&zip_archive, i, &file_stat)) {
-                mz_zip_reader_end(&zip_archive);
-                return false;
-            }
-
-            std::string lc_filename((const char*) file_stat.m_filename);
-            std::transform(lc_filename.begin(), lc_filename.end(), lc_filename.begin(), (int(*)(int)) tolower);
-            std::string extension = lc_filename.substr(lc_filename.find_last_of(".") + 1);
-
-            if (extension == "bin") {
-                void *buffer;
-                size_t uncomp_size;
-
-                buffer = mz_zip_reader_extract_file_to_heap(&zip_archive, file_stat.m_filename, &uncomp_size, 0);
-                if (!buffer) {
-                    mz_zip_reader_end(&zip_archive);
-                    return false;
-                }
-
-                bool success = false;
-                if (uncomp_size <= size) {
-                    std::memcpy(data, buffer, uncomp_size);
-                    success = true;
-                }
-
-                mz_zip_reader_end(&zip_archive);
-                free(buffer);
-
-                return success;
-            }
-        }
-
-        mz_zip_reader_end(&zip_archive);
-        return false;
-    } else {
-        std::filesystem::path file_path = filename;
-
-        if (std::filesystem::file_size(file_path) <= size) {
-            std::ifstream fh(filename, std::ios::binary|std::ios::in);
-            fh.read(reinterpret_cast<char*>(data), size);
-            return true;
-        }
-    }
-
-    return false;
-}
-
 int main(int argc, char *argv[]) {
     cmdline::parser argparser;
     argparser.add<std::string>("rom", 'r', "ROM", false, "");
@@ -389,36 +253,33 @@ int main(int argc, char *argv[]) {
     argparser.add<int>("colour", 'c', "Colour", false, 0);
     argparser.parse_check(argc, argv);
 
+    Emulator emulator;
+
     NFD::Init();
 
-    std::string rom_filename = argparser.get<std::string>("rom");
-    std::string bios_filename = argparser.get<std::string>("bios");
-    int scale = argparser.get<int>("scale");
+    emulator.rom = argparser.get<std::string>("rom");
+    emulator.bios = argparser.get<std::string>("bios");
+    emulator.scale = argparser.get<int>("scale");
 
     SetConfigFlags(FLAG_MSAA_4X_HINT|FLAG_VSYNC_HINT|FLAG_WINDOW_RESIZABLE);
     raylib::Window window(1280, 960, "Megata" + std::string(" (v") + std::string(VERSION) + ")");
     SetTargetFPS(60);
 
-    bool has_bios = false;
-    bool has_rom = false;
-
-    if (rom_filename.length()) {
-        if (load_file(rom_filename, ROM.data(), ROM.size())) {
-            has_rom = true;
-        } else {
-            std::cerr << "Could not open ROM file " << rom_filename << "\n";
+    if (emulator.rom.length()) {
+        if (!load_file(emulator.rom, ROM.data(), ROM.size())) {
+            std::cerr << "Could not open ROM file " << emulator.rom << "\n";
+            emulator.rom = "";
         }
     }
 
-    if (bios_filename.length()) {
-        if (load_file(bios_filename, BIOS.data(), BIOS.size())) {
-            has_bios = true;
-        } else {
-            std::cerr << "Could not open BIOS file " << bios_filename << "\n";
+    if (emulator.bios.length()) {
+        if (!load_file(emulator.bios, BIOS.data(), BIOS.size())) {
+            std::cerr << "Could not open BIOS file " << emulator.bios << "\n";
+            emulator.bios = "";
         }
     }
 
-    running_state.paused = !(has_bios && has_rom);
+    running_state.paused = !emulator.ready();
 
     std::array<uint32_t, LCD::ScreenWidth*LCD::ScreenHeight> screen = {0xFF};
 
@@ -448,24 +309,21 @@ int main(int argc, char *argv[]) {
         running_state.audio_enabled = false;
     }
 
-    std::array<uint32_t, 4> palette;
     switch (argparser.get<int>("colour")) {
         case 1:
-            palette = grey_palette;
+            emulator.palette = grey_palette;
             break;
         case 2:
-            palette = gb_palette;
+            emulator.palette = gb_palette;
             break;
         case 3:
-            palette = gbp_palette;
+            emulator.palette = gbp_palette;
             break;
         default:
-            palette = green_palette;
+            emulator.palette = green_palette;
     }
 
     rlImGuiSetup(true);
-
-    bool show_about = false;
 
     auto &imgui_io = ImGui::GetIO();
     imgui_io.IniFilename = nullptr;
@@ -546,7 +404,7 @@ int main(int argc, char *argv[]) {
             cpu.setPeriod(32768 - 7364);
         }
 
-        lcd.update(palette, screen);
+        lcd.update(emulator.palette, screen);
         screen_texture.Update(screen.data());
 
         BeginDrawing();
@@ -554,208 +412,13 @@ int main(int argc, char *argv[]) {
             int width = window.GetRenderWidth();
             int height = window.GetRenderHeight();
 
-            Vector2 lcd_origin(-((width / 2) - (LCD::ScreenWidth*scale/2)), -((height / 2) - (LCD::ScreenHeight*scale / 2)));
+            Vector2 lcd_origin(-((width / 2) - (LCD::ScreenWidth*emulator.scale/2)), -((height / 2) - (LCD::ScreenHeight*emulator.scale / 2)));
 
             window.ClearBackground(BLACK);
-            screen_texture.Draw(raylib::Rectangle(Vector2(LCD::ScreenWidth, LCD::ScreenHeight)), raylib::Rectangle(Vector2(LCD::ScreenWidth*scale, LCD::ScreenHeight*scale)), lcd_origin);
-            rlImGuiBegin();
-            {
-                if (ImGui::BeginMainMenuBar()) {
-                    if (ImGui::BeginMenu("File")) {
-                        if (ImGui::MenuItem("Open ROM")) {
-                            bool is_audio_enabled = running_state.audio_enabled;
-                            running_state.audio_enabled = false;
+            screen_texture.Draw(raylib::Rectangle(Vector2(LCD::ScreenWidth, LCD::ScreenHeight)), raylib::Rectangle(Vector2(LCD::ScreenWidth*emulator.scale, LCD::ScreenHeight*emulator.scale)), lcd_origin);
 
-                            NFD::UniquePath out_path;
-
-                            nfdu8filteritem_t filters[2] = {{"BIN", "bin"}, {"ZIP", "zip"}};
-
-                            nfdresult_t result = NFD::OpenDialog(out_path, filters);
-
-                            if (result == NFD_OKAY) {
-                                std::string rom_path = out_path.get();
-
-                                ROM = {0};
-                                if (load_file(rom_path, ROM.data(), ROM.size())) {
-                                    has_rom = true;
-                                } else {
-                                    std::cerr << "Could not open ROM file " << rom_filename << "\n";
-                                }
-
-                                has_rom = true;
-
-                                PSG_reset(&psg);
-
-                                running_state.reset(!(has_bios && has_rom), is_audio_enabled);
-                                lcd.reset();
-
-                                cpu.reset();
-                                cpu.setPeriod(32768);
-                            } else {
-                                running_state.audio_enabled = is_audio_enabled;
-                            }
-                        }
-                        if (ImGui::MenuItem("Load BIOS")) {
-                            bool is_audio_enabled = running_state.audio_enabled;
-                            running_state.audio_enabled = false;
-
-                            NFD::UniquePath out_path;
-
-                            nfdu8filteritem_t filters[2] = {{"BIN", "bin"}, {"ZIP", "zip"}};
-
-                            nfdresult_t result = NFD::OpenDialog(out_path, filters);
-
-                            if (result == NFD_OKAY) {
-                                std::string rom_path = out_path.get();
-
-                                ROM = {0};
-                                if (load_file(rom_path, BIOS.data(), BIOS.size())) {
-                                    has_bios = true;
-                                } else {
-                                    std::cerr << "Could not open BIOS file " << rom_filename << "\n";
-                                }
-
-                                PSG_reset(&psg);
-
-                                running_state.reset(!(has_bios && has_rom), is_audio_enabled);
-                                lcd.reset();
-
-                                cpu.reset();
-                                cpu.setPeriod(32768);
-                            } else {
-                                running_state.audio_enabled = is_audio_enabled;
-                            }
-                        }
-
-                        if (ImGui::MenuItem("Quit", "ESC")) {
-                            break;
-                            window.Close();
-                        }
-
-                        ImGui::EndMenu();
-                    }
-
-                    if (ImGui::BeginMenu("Video")) {
-                        if (ImGui::BeginMenu("Scale")) {
-                            if (ImGui::MenuItem("1x")) {
-                                scale = 1;
-                            }
-                            if (ImGui::MenuItem("2x")) {
-                                scale = 2;
-                            }
-                            if (ImGui::MenuItem("4x")) {
-                                scale = 4;
-                            }
-                            if (ImGui::MenuItem("8x")) {
-                                scale = 8;
-                            }
-                            ImGui::EndMenu();
-                        }
-
-                        if (ImGui::BeginMenu("Palette")) {
-                            if (ImGui::MenuItem("Default")) {
-                                palette = green_palette;
-                            }
-                            if (ImGui::MenuItem("Greyscale")) {
-                                palette = grey_palette;
-                            }
-                            if (ImGui::MenuItem("GB")) {
-                                palette = gb_palette;
-                            }
-                            if (ImGui::MenuItem("GB Pocket")) {
-                                palette = gbp_palette;
-                            }
-                            ImGui::EndMenu();
-                        }
-
-                        ImGui::EndMenu();
-                    }
-
-                    if (ImGui::BeginMenu("Audio")) {
-                        if (ImGui::MenuItem("Enable Audio", "", &running_state.audio_enabled)) {
-                        }
-
-                        ImGui::EndMenu();
-                    }
-
-                    if (ImGui::BeginMenu("System")) {
-                        if (ImGui::MenuItem("Pause")) {
-                        }
-                        if (ImGui::MenuItem("Reset")) {
-                            running_state.reset(!(has_bios && has_rom), running_state.audio_enabled);
-                            lcd.reset();
-
-                            cpu.reset();
-                            cpu.setPeriod(32768);
-                        }
-                        ImGui::EndMenu();
-                    }
-
-                    if (ImGui::BeginMenu("About")) {
-                        if (ImGui::MenuItem("About Megate")) {
-                            show_about = true;
-                            std::cerr << "HERE\n";
-                        }
-
-                        ImGui::EndMenu();
-                    }
-
-                    ImGui::EndMainMenuBar();
-                }
-
-                if (show_about) {
-                    ImGui::OpenPopup("About Megate");
-
-                    if (ImGui::BeginPopupModal("About Megate", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-                        ImGui::Text("%s\n", MEGATA_TITLE_ASCII);
-
-                        ImGui::Text("  By Neil Richardson (nrich@neiltopia.com)");
-                        ImGui::Text(" "); ImGui::SameLine();
-                        ImGui::TextLinkOpenURL("https://github.com/nrich/megata");
-                        ImGui::NewLine();
-
-
-                        if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None)) {
-                            if (ImGui::BeginTabItem("Build Info")) {
-                                ImGui::BeginChild("build", ImVec2(0, 100), false, ImGuiWindowFlags_AlwaysVerticalScrollbar);
-
-                                ImGui::Text("Build: %s", VERSION);
-
-                                #if defined(__DATE__) && defined(__TIME__)
-                                ImGui::Text("Built on: %s - %s", __DATE__, __TIME__);
-                                #endif
-
-                                #if defined(__GNUC__) && !defined(__llvm__) && !defined(__INTEL_COMPILER)
-                                ImGui::Text("GCC %d.%d.%d", (int)__GNUC__, (int)__GNUC_MINOR__, (int)__GNUC_PATCHLEVEL__);
-                                #endif
-
-                                ImGui::Text("raylib %s (%d.%d.%d)", RAYLIB_VERSION, RAYLIB_VERSION_MAJOR, RAYLIB_VERSION_MINOR, RAYLIB_VERSION_PATCH);
-                                ImGui::Text("Dear ImGui %s (%d)", IMGUI_VERSION, IMGUI_VERSION_NUM);
-
-                                ImGui::EndChild();
-                                ImGui::EndTabItem();
-                            }
-
-                            if (ImGui::BeginTabItem("LICENSE")) {
-                                ImGui::BeginChild("license", ImVec2(0, 100), false, ImGuiWindowFlags_AlwaysVerticalScrollbar);
-                                ImGui::TextUnformatted(GPL_LICENSE_STR);
-                                ImGui::EndChild();
-                                ImGui::EndTabItem();
-                            }
-
-                            ImGui::EndTabBar();
-                        }
-
-                        if (ImGui::Button("OK", ImVec2(120, 0))) {
-                            ImGui::CloseCurrentPopup();
-                            show_about = false;
-                        }
-
-                        ImGui::EndPopup();
-                    }
-                }
-            }
-            rlImGuiEnd();
+            if (UI::Draw(running_state, lcd, cpu, emulator))
+                break;
         }
         EndDrawing();
     }

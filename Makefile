@@ -65,15 +65,17 @@ default: all
  
 COMMON_OBJS := \
         thirdparty/emu2149-1.16/emu2149.o \
-        thirdparty/miniz-3.0.2/miniz.o \
         thirdparty/imgui-1.91.9/imgui.o \
         thirdparty/imgui-1.91.9/imgui_demo.o \
         thirdparty/imgui-1.91.9/imgui_draw.o \
         thirdparty/imgui-1.91.9/imgui_tables.o \
         thirdparty/imgui-1.91.9/imgui_widgets.o \
+        thirdparty/miniz-3.0.2/miniz.o \
         thirdparty/rlImGui/rlImGui.o \
 	src/CPU.o \
+	src/Emulation.o \
 	src/LCD.o \
+	src/UI.o \
 	src/main.o
 
 ifdef CONFIG_W64
