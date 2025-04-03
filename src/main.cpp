@@ -393,6 +393,22 @@ int main(int argc, char *argv[]) {
             if (IsGamepadButtonDown(gamepad, gamepad_input.start)) {
                 running_state.button_state ^= 0b01000000;
             }
+
+            float x = GetGamepadAxisMovement(gamepad, 0);
+            float y = GetGamepadAxisMovement(gamepad, 1);
+
+            if (x > 0.5) {
+                running_state.button_state ^= 0b00001000;
+            } else if (x < -0.5) {
+                running_state.button_state ^= 0b00000100;
+            }
+
+            if (y > 0.5) {
+                running_state.button_state ^= 0b00000010;
+            } else if (y < -0.5) {
+                running_state.button_state ^= 0b00000001;
+            }
+
         }
 
         if (!running_state.paused) {
