@@ -64,3 +64,13 @@ sudo make install RAYLIB_LIBTYPE=SHARED
 ``` shell
 make
 ```
+
+## Screenshots
+
+[Screenshot-2025-04-03-194147.png](https://postimg.cc/NykbQSMz)
+
+[Screenshot-2025-04-03-194506.png](https://postimg.cc/626cqc45)
+
+[Screenshot-2025-04-03-194722.png](https://postimg.cc/N9N4HXR8)
+
+[Screenshot-2025-04-03-195205.png](https://postimg.cc/2LVxF5xs)
