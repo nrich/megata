@@ -67,10 +67,7 @@ make
 
 ## Screenshots
 
-[Screenshot-2025-04-03-194147.png](https://postimg.cc/NykbQSMz)
-
-[Screenshot-2025-04-03-194506.png](https://postimg.cc/626cqc45)
-
-[Screenshot-2025-04-03-194722.png](https://postimg.cc/N9N4HXR8)
-
-[Screenshot-2025-04-03-195205.png](https://postimg.cc/2LVxF5xs)
+![Screenshot 2025-04-03 195205](https://github.com/user-attachments/assets/b72da1d8-66e3-4a1f-a4f2-69e064668edf)
+![Screenshot 2025-04-03 194722](https://github.com/user-attachments/assets/6bae0455-2573-4a68-9e9b-9de3c66fd2f9)
+![Screenshot 2025-04-03 194506](https://github.com/user-attachments/assets/8605ce43-0b34-4520-a0f6-c19ea4224e31)
+![Screenshot 2025-04-03 194240](https://github.com/user-attachments/assets/ae64694f-f8aa-49e2-a27e-df748b8037fd)
