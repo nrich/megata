@@ -1,5 +1,15 @@
 # megata
-Cross platform emulator for the Gamate handheld console.
+Cross platform emulator for the [Gamate](https://en.wikipedia.org/wiki/Gamate) handheld console released by Bit Corporation.
+
+## Running
+
+### BIOS
+
+A valid Gamate BIOS is required to run games. The BIOS can be found on the [Internet Archive](https://archive.org) by searching for *Gamate*. Download and place the `gamate.zip` BIOS fril in the same directory as `megata.exe`.
+
+### Game library
+
+A collection of 58 Gamate game ROMs can be found on the [Internet Archive](https://archive.org). 
 
 ## Build Instructions
 
