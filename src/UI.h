@@ -26,9 +26,13 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #include "LCD.h"
 
 class UI {
+    static void KeyboardPopup();
+    static void KeyboardConfig(const std::string &text, int32_t *key);
 
+    static KeyboardKey ImGuiKeyToKeyboardKey(ImGuiKey imgui_key);
+    static std::string KeyboardKeyToName(const KeyboardKey key);
 public:
-    static bool Draw(RunningState &running_state, LCD &lcd, CPU &cpu, Emulator &emulator);
+    static bool Draw(RunningState &running_state, LCD &lcd, CPU &cpu, Emulator &emulator, KeyboardInput &keyboard_input);
 };
 
 #endif //UI_H

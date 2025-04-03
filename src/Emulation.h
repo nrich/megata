@@ -23,6 +23,8 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #include <array>
 #include <string>
 
+#include <raylib-cpp.hpp>
+
 typedef std::array<uint32_t, 4> Palette;
 
 struct RunningState {
@@ -50,6 +52,18 @@ struct Emulator {
     bool ready() {
         return rom.length() && bios.length();
     }
+};
+
+struct KeyboardInput {
+    int32_t up = KEY_UP;
+    int32_t down = KEY_DOWN;
+    int32_t left = KEY_LEFT;
+    int32_t right = KEY_RIGHT;
+
+    int32_t a = KEY_A;
+    int32_t b = KEY_S;
+    int32_t start = KEY_ENTER;
+    int32_t select = KEY_SPACE;
 };
 
 bool load_file(const std::string &filename, uint8_t *data, size_t size);

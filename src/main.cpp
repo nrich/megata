@@ -49,6 +49,7 @@ static LCD lcd;
 PSG psg;
 
 static RunningState running_state;
+static KeyboardInput keyboard_input;
 
 extern Palette green_palette;
 extern Palette grey_palette;
@@ -334,28 +335,28 @@ int main(int argc, char *argv[]) {
 
     while (!window.ShouldClose()) {
         running_state.button_state = 0xFF;
-        if (IsKeyDown(KEY_UP)) {
+        if (IsKeyDown(keyboard_input.up)) {
             running_state.button_state ^= 0b00000001;
         }
-        if (IsKeyDown(KEY_DOWN)) {
+        if (IsKeyDown(keyboard_input.down)) {
             running_state.button_state ^= 0b00000010;
         }
-        if (IsKeyDown(KEY_LEFT)) {
+        if (IsKeyDown(keyboard_input.left)) {
             running_state.button_state ^= 0b00000100;
         }
-        if (IsKeyDown(KEY_RIGHT)) {
+        if (IsKeyDown(keyboard_input.right)) {
             running_state.button_state ^= 0b00001000;
         }
-        if (IsKeyDown(KEY_A)) {
+        if (IsKeyDown(keyboard_input.a)) {
             running_state.button_state ^= 0b00010000;
         }
-        if (IsKeyDown(KEY_S)) {
+        if (IsKeyDown(keyboard_input.b)) {
             running_state.button_state ^= 0b00100000;
         }
-        if (IsKeyDown(KEY_Q)) {
+        if (IsKeyDown(keyboard_input.start)) {
             running_state.button_state ^= 0b01000000;
         }
-        if (IsKeyDown(KEY_W)) {
+        if (IsKeyDown(keyboard_input.select)) {
             running_state.button_state ^= 0b10000000;
         }
 
@@ -407,6 +408,8 @@ int main(int argc, char *argv[]) {
         lcd.update(emulator.palette, screen);
         screen_texture.Update(screen.data());
 
+        std::cerr << keyboard_input.left << "\n";
+
         BeginDrawing();
         {
             int width = window.GetRenderWidth();
@@ -417,7 +420,7 @@ int main(int argc, char *argv[]) {
             window.ClearBackground(BLACK);
             screen_texture.Draw(raylib::Rectangle(Vector2(LCD::ScreenWidth, LCD::ScreenHeight)), raylib::Rectangle(Vector2(LCD::ScreenWidth*emulator.scale, LCD::ScreenHeight*emulator.scale)), lcd_origin);
 
-            if (UI::Draw(running_state, lcd, cpu, emulator)) {
+            if (UI::Draw(running_state, lcd, cpu, emulator, keyboard_input)) {
                 break;
             }
         }
