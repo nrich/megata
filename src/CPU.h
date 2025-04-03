@@ -371,7 +371,7 @@ public:
     }
 
     void reset();
-    void run();
+    int32_t run();
     void interupt(INT type);
 
     ~CPU();

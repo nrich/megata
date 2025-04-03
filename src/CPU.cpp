@@ -203,7 +203,7 @@ void CPU::interupt(INT type) {
     }
 }
 
-void CPU::run() {
+int32_t CPU::run() {
     WordBytes J, K;
     uint8_t I;
 
@@ -1093,7 +1093,7 @@ void CPU::run() {
             }
 
             if (I == INT::QUIT)
-                return;
+                return count;
             if (I)
                 interupt((INT)I);
         }
