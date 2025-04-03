@@ -339,7 +339,7 @@ void UI::KeyboardConfig(const std::string &text, int32_t *key) {
     std::cerr << key << "\n";
 
     ImGui::Text("%s", text.c_str());
-    ImGui::SameLine(70);
+    ImGui::SameLine(120);
 
     std::string button_label = KeyboardKeyToName((KeyboardKey)*key) + "##" + text;
 
