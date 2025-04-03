@@ -11,6 +11,10 @@ A valid Gamate BIOS is required to run games. The BIOS can be found on the [Inte
 
 A collection of 58 Gamate game ROMs can be found on the [Internet Archive](https://archive.org). 
 
+### Controls
+
+Keyboad and gampad control inputs are supported. By default, the keyboard controls use the arrow keys for the D-Pad, Enter for start, the spacebar for select and the A and S keys for the A + B buttons.
+
 ## Build Instructions
 
 ### MinGW
