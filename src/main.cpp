@@ -417,8 +417,9 @@ int main(int argc, char *argv[]) {
             window.ClearBackground(BLACK);
             screen_texture.Draw(raylib::Rectangle(Vector2(LCD::ScreenWidth, LCD::ScreenHeight)), raylib::Rectangle(Vector2(LCD::ScreenWidth*emulator.scale, LCD::ScreenHeight*emulator.scale)), lcd_origin);
 
-            if (UI::Draw(running_state, lcd, cpu, emulator))
+            if (UI::Draw(running_state, lcd, cpu, emulator)) {
                 break;
+            }
         }
         EndDrawing();
     }

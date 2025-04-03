@@ -82,6 +82,8 @@ Palette gbp_palette = {
 };
 
 bool UI::Draw(RunningState &running_state, LCD &lcd, CPU &cpu, Emulator &emulator) {
+    bool should_exit = false;
+
     rlImGuiBegin();
     {
         if (ImGui::BeginMainMenuBar()) {
@@ -150,7 +152,7 @@ bool UI::Draw(RunningState &running_state, LCD &lcd, CPU &cpu, Emulator &emulato
                 }
 
                 if (ImGui::MenuItem("Quit", "ESC")) {
-                    return false;
+                    should_exit = true;
                 }
 
                 ImGui::EndMenu();
@@ -214,7 +216,6 @@ bool UI::Draw(RunningState &running_state, LCD &lcd, CPU &cpu, Emulator &emulato
             if (ImGui::BeginMenu("About")) {
                 if (ImGui::MenuItem("About Megate")) {
                     show_about = true;
-                    std::cerr << "HERE\n";
                 }
 
                 ImGui::EndMenu();
@@ -276,5 +277,5 @@ bool UI::Draw(RunningState &running_state, LCD &lcd, CPU &cpu, Emulator &emulato
     }
     rlImGuiEnd();
 
-    return false;
+    return should_exit;
 }
