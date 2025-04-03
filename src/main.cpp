@@ -50,6 +50,7 @@ PSG psg;
 
 static RunningState running_state;
 static KeyboardInput keyboard_input;
+static GamepadInput gamepad_input;
 
 extern Palette green_palette;
 extern Palette grey_palette;
@@ -360,36 +361,36 @@ int main(int argc, char *argv[]) {
             running_state.button_state ^= 0b10000000;
         }
 
-        if (IsGamepadAvailable(gamepad)) {
-            if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_LEFT_FACE_UP)) {
+        if (IsGamepadAvailable(gamepad_input.Id)) {
+            if (IsGamepadButtonDown(gamepad, gamepad_input.up)) {
                 running_state.button_state ^= 0b00000001;
             }
 
-            if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) {
+            if (IsGamepadButtonDown(gamepad, gamepad_input.down)) {
                 running_state.button_state ^= 0b00000010;
             }
 
-            if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_LEFT_FACE_LEFT)) {
+            if (IsGamepadButtonDown(gamepad, gamepad_input.left)) {
                 running_state.button_state ^= 0b00000100;
             }
 
-            if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)) {
+            if (IsGamepadButtonDown(gamepad, gamepad_input.right)) {
                 running_state.button_state ^= 0b00001000;
             }
 
-            if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_RIGHT_FACE_LEFT)) {
+            if (IsGamepadButtonDown(gamepad, gamepad_input.a)) {
                 running_state.button_state ^= 0b00010000;
             }
 
-            if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
+            if (IsGamepadButtonDown(gamepad, gamepad_input.b)) {
                 running_state.button_state ^= 0b00100000;
             }
 
-            if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_MIDDLE_LEFT)) {
+            if (IsGamepadButtonDown(gamepad, gamepad_input.select)) {
                 running_state.button_state ^= 0b10000000;
             }
 
-            if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_MIDDLE_RIGHT)) {
+            if (IsGamepadButtonDown(gamepad, gamepad_input.start)) {
                 running_state.button_state ^= 0b01000000;
             }
         }
@@ -408,8 +409,6 @@ int main(int argc, char *argv[]) {
         lcd.update(emulator.palette, screen);
         screen_texture.Update(screen.data());
 
-        std::cerr << keyboard_input.left << "\n";
-
         BeginDrawing();
         {
             int width = window.GetRenderWidth();
@@ -420,7 +419,7 @@ int main(int argc, char *argv[]) {
             window.ClearBackground(BLACK);
             screen_texture.Draw(raylib::Rectangle(Vector2(LCD::ScreenWidth, LCD::ScreenHeight)), raylib::Rectangle(Vector2(LCD::ScreenWidth*emulator.scale, LCD::ScreenHeight*emulator.scale)), lcd_origin);
 
-            if (UI::Draw(running_state, lcd, cpu, emulator, keyboard_input)) {
+            if (UI::Draw(running_state, lcd, cpu, emulator, keyboard_input, gamepad_input)) {
                 break;
             }
         }

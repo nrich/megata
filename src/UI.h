@@ -29,10 +29,15 @@ class UI {
     static void KeyboardPopup();
     static void KeyboardConfig(const std::string &text, int32_t *key);
 
+    static void GamepadPopup();
+    static void GamepadConfig(const std::string &text, int32_t *key);
+
     static KeyboardKey ImGuiKeyToKeyboardKey(ImGuiKey imgui_key);
     static std::string KeyboardKeyToName(const KeyboardKey key);
+
+    static std::string GamepadButtonToName(int32_t button);
 public:
-    static bool Draw(RunningState &running_state, LCD &lcd, CPU &cpu, Emulator &emulator, KeyboardInput &keyboard_input);
+    static bool Draw(RunningState &running_state, LCD &lcd, CPU &cpu, Emulator &emulator, KeyboardInput &keyboard_input, GamepadInput &gamepad_input);
 };
 
 #endif //UI_H

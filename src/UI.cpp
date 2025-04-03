@@ -41,6 +41,8 @@ extern std::array<uint8_t, 524288> ROM; // biggest rom is 512KiB
 extern std::array<uint8_t, 4096> BIOS;
 extern PSG psg;
 
+static int32_t *configured_key = nullptr;
+static int32_t *configured_button = nullptr;
 
 static uint32_t color_to_u32(const raylib::Color &color) {
     uint8_t r = color.GetR();
@@ -308,7 +310,9 @@ std::string UI::KeyboardKeyToName(const KeyboardKey key) {
     }
 }
 
-static int32_t *configured_key = nullptr;
+std::string UI::GamepadButtonToName(int32_t button) {
+    return "Button " + std::to_string(button);
+}
 
 void UI::KeyboardPopup() {
     if (ImGui::BeginPopupModal("Keyboard Configuration", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
@@ -336,22 +340,49 @@ void UI::KeyboardPopup() {
 }
 
 void UI::KeyboardConfig(const std::string &text, int32_t *key) {
-    std::cerr << key << "\n";
-
     ImGui::Text("%s", text.c_str());
     ImGui::SameLine(120);
 
-    std::string button_label = KeyboardKeyToName((KeyboardKey)*key) + "##" + text;
+    std::string button_label = KeyboardKeyToName((KeyboardKey)*key) + "##" + text + "Keyboard";
 
-    std::cerr << button_label << "\n";
-
-    if (ImGui::Button(button_label.c_str(), ImVec2(90, 0))) {
+    if (ImGui::Button(button_label.c_str(), ImVec2(120, 0))) {
         configured_key = key;
         ImGui::OpenPopup("Keyboard Configuration");
     }
 }
 
-bool UI::Draw(RunningState &running_state, LCD &lcd, CPU &cpu, Emulator &emulator, KeyboardInput &keyboard_input) {
+void UI::GamepadPopup() {
+    if (ImGui::BeginPopupModal("Gamepad Configuration", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Press any button to assign...\n\n");
+        ImGui::Separator();
+
+        int32_t button_pressed = GetGamepadButtonPressed();
+        if (button_pressed != GAMEPAD_BUTTON_UNKNOWN) {
+            *configured_button = button_pressed;
+            ImGui::CloseCurrentPopup();
+        }
+
+        if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
+void UI::GamepadConfig(const std::string &text, int32_t *button) {
+    ImGui::Text("%s", text.c_str());
+    ImGui::SameLine(120);
+
+    std::string button_label = GamepadButtonToName(*button) + "##" + text + "GamePad";
+
+    if (ImGui::Button(button_label.c_str(), ImVec2(120, 0))) {
+        configured_button = button;
+        ImGui::OpenPopup("Gamepad Configuration");
+    }
+}
+
+bool UI::Draw(RunningState &running_state, LCD &lcd, CPU &cpu, Emulator &emulator, KeyboardInput &keyboard_input, GamepadInput &gamepad_input) {
     bool should_exit = false;
 
     rlImGuiBegin();
@@ -486,8 +517,16 @@ bool UI::Draw(RunningState &running_state, LCD &lcd, CPU &cpu, Emulator &emulato
                     ImGui::EndMenu();
                 }
                 if (ImGui::BeginMenu("Gamepad")) {
+                    GamepadConfig("Button A:", &gamepad_input.a);
+                    GamepadConfig("Button B:", &gamepad_input.b);
+                    GamepadConfig("Start:", &gamepad_input.start);
+                    GamepadConfig("Select:", &gamepad_input.select);
+
+                    GamepadPopup();
+
                     ImGui::EndMenu();
                 }
+
                 ImGui::EndMenu();
             }
 

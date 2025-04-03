@@ -66,6 +66,21 @@ struct KeyboardInput {
     int32_t select = KEY_SPACE;
 };
 
+struct GamepadInput {
+    int32_t Id = 0;
+
+    int32_t up = GAMEPAD_BUTTON_LEFT_FACE_UP;
+    int32_t down = GAMEPAD_BUTTON_LEFT_FACE_DOWN;
+    int32_t left = GAMEPAD_BUTTON_LEFT_FACE_LEFT;
+    int32_t right = GAMEPAD_BUTTON_LEFT_FACE_RIGHT;
+
+    int32_t a = GAMEPAD_BUTTON_RIGHT_FACE_DOWN;
+    int32_t b = GAMEPAD_BUTTON_RIGHT_FACE_LEFT;
+    int32_t start = GAMEPAD_BUTTON_MIDDLE_RIGHT;
+    int32_t select = GAMEPAD_BUTTON_MIDDLE_LEFT;
+};
+
+
 bool load_file(const std::string &filename, uint8_t *data, size_t size);
 
 #endif //EMULATION_H
