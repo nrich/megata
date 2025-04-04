@@ -531,7 +531,8 @@ bool UI::Draw(RunningState &running_state, LCD &lcd, CPU &cpu, Emulator &emulato
             }
 
             if (ImGui::BeginMenu("System")) {
-                if (ImGui::MenuItem("Pause")) {
+                if (ImGui::MenuItem("Pause", "", &running_state.paused)) {
+                    running_state.audio_enabled = !running_state.paused;
                 }
                 if (ImGui::MenuItem("Reset")) {
                     running_state.reset(!emulator.ready(), running_state.audio_enabled);
