@@ -90,7 +90,7 @@ inline void CPU::M_ADC(uint8_t &Rg) {
         P |= FLAG::V;
     }
 
-    if (P&FLAG::D) {
+    if (P & FLAG::D) {
         w = (A & 0xf) + (Rg & 0xf) + (P & FLAG::C);
 
         if (w >= 10) w = 0x10 | ((w+6)&0xf);
@@ -108,12 +108,14 @@ inline void CPU::M_ADC(uint8_t &Rg) {
         }
     } else {
         w = A + Rg + (P&FLAG::C);
+
         if (w >= 0x100) {
             P |= FLAG::C;
             if ((P & FLAG::V) && w >= 0x180)
                 P &= ~FLAG::V;
         } else {
             P &= ~FLAG::C;
+
             if ((P&FLAG::V) && w < 0x80)
                 P &= ~FLAG::V;
         }
@@ -128,45 +130,57 @@ inline void CPU::M_SBC(uint8_t val) {
 
     if ((A ^ val) & 0x80) {
         P |= FLAG::V;
-    }
-    else {
+    } else {
         P &= ~FLAG::V;
     }
 
-    if (P&FLAG::D) {
+    if (P & FLAG::D) {
         // decimal subtraction
         uint32_t temp = 0xf + (A & 0xf) - (val & 0xf) + (P & FLAG::C);
+
         if (temp < 0x10) {
             w = 0;
             temp -= 6;
-        }
-        else {
+        } else {
             w = 0x10;
             temp -= 0x10;
         }
+
         w += 0xf0 + (A & 0xf0) - (val & 0xf0);
+
         if (w < 0x100) {
             P &= ~FLAG::C;
-            if ((P&FLAG::V) && w < 0x80) P &= ~FLAG::V;
+
+            if ((P & FLAG::V) && w < 0x80)
+                P &= ~FLAG::V;
+
             w -= 0x60;
         } else {
             P |= FLAG::C;
-            if ((P&FLAG::V) && w >= 0x180) P &= ~FLAG::V;
+
+            if ((P & FLAG::V) && w >= 0x180)
+                P &= ~FLAG::V;
         }
+
         w += temp;
     } else {
         // standard binary subtraction
         w = 0xff + A - val + (P&FLAG::C);
+
         if (w < 0x100) {
             P &= ~FLAG::C;
-            if ((P & FLAG::V) && w < 0x80) P &= ~FLAG::V;
-        }
-        else {
+
+            if ((P & FLAG::V) && w < 0x80)
+                P &= ~FLAG::V;
+        } else {
             P |= FLAG::C;
-            if ((P&FLAG::V) && w >= 0x180) P &= ~FLAG::V;
+
+            if ((P & FLAG::V) && w >= 0x180)
+                P &= ~FLAG::V;
         }
     }
-    A = (unsigned char)w;
+
+    A = (uint8_t)w;
     P = (P & ~(FLAG::Z | FLAG::N)) | (A >= 0x80 ? FLAG::N : 0) | (A == 0 ? FLAG::Z : 0);
 }
 

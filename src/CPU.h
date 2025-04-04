@@ -361,10 +361,8 @@ class CPU {
     }
 
     void SBCInstruction(uint8_t val);
-
 public:
     CPU(std::function<uint8_t(uint16_t)> read, std::function<void(uint16_t, uint8_t)> write, std::function<uint8_t()> loop);
-
 
     void setPeriod(int32_t new_period) {
         period = new_period;
