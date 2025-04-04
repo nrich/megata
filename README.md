@@ -1,5 +1,19 @@
 # megata
-Cross platform emulator for the Gamate handheld console.
+Cross platform emulator for the [Gamate](https://en.wikipedia.org/wiki/Gamate) handheld console released by Bit Corporation.
+
+## Running
+
+### BIOS
+
+A valid Gamate BIOS is required to run games. The BIOS can be found on the [Internet Archive](https://archive.org) by searching for *Gamate*. Download and place the `gamate.zip` BIOS fril in the same directory as `megata.exe`.
+
+### Game library
+
+A collection of 58 Gamate game ROMs can be found on the [Internet Archive](https://archive.org). 
+
+### Controls
+
+Keyboad and gampad control inputs are supported. By default, the keyboard controls use the arrow keys for the D-Pad, Enter for start, the spacebar for select and the A and S keys for the A + B buttons.
 
 ## Build Instructions
 
@@ -50,3 +64,10 @@ sudo make install RAYLIB_LIBTYPE=SHARED
 ``` shell
 make
 ```
+
+## Screenshots
+
+![Screenshot 2025-04-03 195205](https://github.com/user-attachments/assets/b72da1d8-66e3-4a1f-a4f2-69e064668edf)
+![Screenshot 2025-04-03 194722](https://github.com/user-attachments/assets/6bae0455-2573-4a68-9e9b-9de3c66fd2f9)
+![Screenshot 2025-04-03 194506](https://github.com/user-attachments/assets/8605ce43-0b34-4520-a0f6-c19ea4224e31)
+![Screenshot 2025-04-03 194240](https://github.com/user-attachments/assets/ae64694f-f8aa-49e2-a27e-df748b8037fd)
