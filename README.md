@@ -5,7 +5,7 @@ Cross platform emulator for the [Gamate](https://en.wikipedia.org/wiki/Gamate) h
 
 ### BIOS
 
-A valid Gamate BIOS is required to run games. The BIOS can be found on the [Internet Archive](https://archive.org) by searching for *Gamate*. Download and place the `gamate.zip` BIOS fril in the same directory as `megata.exe`.
+A valid Gamate BIOS is required to run games. The BIOS can be found on the [Internet Archive](https://archive.org) by searching for *Gamate*. Download and place the `gamate.zip` BIOS file in the same directory as `megata.exe`.
 
 ### Game library
 
