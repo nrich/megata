@@ -52,7 +52,7 @@ CONFIG_W64=1 make
 
 - Install raylib
 ``` shell
-sudo apt install build-essential
+sudo apt install build-essential libgtk-3-dev
 wget -O /tmp/5.5.0.tar.gz https://github.com/raysan5/raylib/archive/refs/tags/5.5.tar.gz
 tar xf /tmp/5.5.0.tar.gz -C /tmp/
 cd /tmp/raylib-5.5/src
