@@ -11,7 +11,7 @@ STRIP = strip
 
 UNAME := $(shell uname -s)
 
-ifeq ($(findstring MINGW, $(UNAME)), MINGW)
+ifeq ($(findstring MSYS, $(UNAME)), MSYS)
     CONFIG_W64=1
 endif
  
