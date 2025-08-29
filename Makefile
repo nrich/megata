@@ -22,7 +22,7 @@ endif
 ifdef CONFIG_W64
     CXX = x86_64-w64-mingw32-g++
     CC = x86_64-w64-mingw32-gcc
-    LDFLAGS = -mwindows -static-libgcc -static-libstdc++ -L thirdparty/raylib-5.5.0/lib/mingw-w64 -lraylib -lgdi32 -lopengl32 -lwinmm -lole32 -luuid -lshell32
+    LDFLAGS = -static -mwindows -static-libgcc -static-libstdc++ -L thirdparty/raylib-5.5.0/lib/mingw-w64 -lraylib -lgdi32 -lopengl32 -lwinmm -lole32 -luuid -lshell32
     INC = -I src -I thirdparty -I thirdparty/raylib-5.5.0/include -I thirdparty/raylib-cpp-5.5.0 -I thirdparty/miniz-3.0.2 -I thirdparty/emu2149-1.16 -I thirdparty/imgui-1.91.9 -I thirdparty/rlImGui -I thirdparty/nativefiledialog-extended-1.2.1
     CPPFLAGS = -O3 -std=c++20 -pthread $(INC) -D_WIN64 -Wall
     ifeq ($(UNAME), Linux)
