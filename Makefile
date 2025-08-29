@@ -14,6 +14,10 @@ UNAME := $(shell uname -s)
 ifeq ($(findstring MSYS, $(UNAME)), MSYS)
     CONFIG_W64=1
 endif
+
+ifeq ($(findstring MINGW, $(UNAME)), MINGW)
+    CONFIG_W64=1
+endif
  
 ifdef CONFIG_W64
     CXX = x86_64-w64-mingw32-g++
