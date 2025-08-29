@@ -296,12 +296,14 @@ int main(int argc, char *argv[]) {
     PSG_setFlags(&psg, EMU2149_ZX_STEREO);
     PSG_reset(&psg);
 
-    std::unique_ptr<raylib::AudioDevice> audiodevice = nullptr;
+    std::unique_ptr<raylib::AudioDevice> audio_device = nullptr;
     std::unique_ptr<raylib::AudioStream> audio_stream = nullptr;
 
     try {
-        audiodevice = std::make_unique<raylib::AudioDevice>();
-        audio_stream = std::make_unique<raylib::AudioStream>(44100, 16, 2);
+        audio_device = std::make_unique<raylib::AudioDevice>();
+        audio_stream = std::make_unique<raylib::AudioStream>();
+
+        audio_stream->Load(44100, 16, 2);
 
         audio_stream->Play();
         audio_stream->SetCallback(AudioInputCallback);
